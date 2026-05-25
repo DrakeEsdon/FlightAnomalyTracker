@@ -15,5 +15,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build
+      - name: Setup Gradle
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.12-bin.zip
+          unzip -q gradle-8.12-bin.zip -d /opt
+          echo "/opt/gradle-8.12/bin" >> $GITHUB_PATH
+      - run: gradle build
