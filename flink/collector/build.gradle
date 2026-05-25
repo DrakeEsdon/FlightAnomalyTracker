@@ -1,0 +1,22 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':flink:common')
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'org.apache.kafka:kafka-clients:3.9.0'
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+
+    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3'
+    runtimeOnly 'org.apache.logging.log4j:log4j-api:2.24.3'
+    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.24.3'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testImplementation 'org.assertj:assertj-core:3.27.3'
+}
+
+application {
+    mainClass = 'com.flightanomaly.collector.CollectorMain'
+}
