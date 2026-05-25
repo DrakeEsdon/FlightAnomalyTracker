@@ -7,6 +7,7 @@ matched anomalies to Kafka for downstream consumers (dashboards, alerting, etc).
 ## Prerequisites
 
 - Java 21 (tested with [Eclipse Temurin](https://adoptium.net/))
+- [Gradle 8.12](https://gradle.org/install/)
 - Docker & Docker Compose
 - Make (optional)
 
