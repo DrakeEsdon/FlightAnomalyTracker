@@ -1,0 +1,5 @@
+rootProject.name = 'flight-anomaly-detector'
+
+include 'flink:common'
+include 'flink:jobs'
+include 'flink:collector'
