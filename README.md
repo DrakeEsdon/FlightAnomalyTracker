@@ -6,7 +6,7 @@ matched anomalies to Kafka for downstream consumers (dashboards, alerting, etc).
 
 ## Prerequisites
 
-- Java 21 (tested with [Eclipse Temurin](https://adoptium.net/))
+- Java 17+ (tested with [Eclipse Temurin](https://adoptium.net/))
 - [Gradle 8.12](https://gradle.org/install/)
 - Docker & Docker Compose
 - Make (optional)
@@ -15,10 +15,10 @@ Set `JAVA_HOME` before building:
 
 ```bash
 # Linux/macOS
-export JAVA_HOME=/path/to/jdk-21
+export JAVA_HOME=/path/to/jdk-17
 
 # Windows (PowerShell)
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17"
 ```
 
 ## Getting Started
@@ -61,3 +61,4 @@ Environment variables (see `.env.example`):
 | `OPENSKY_CLIENT_ID` | - | OpenSky OAuth2 client ID |
 | `OPENSKY_CLIENT_SECRET` | - | OpenSky OAuth2 client secret |
 | `OPENSKY_POLL_INTERVAL_SECONDS` | `60` | Polling frequency |
+| `OPENSKY_BBOX` | - | Bounding box `lamin,lomin,lamax,lomax` (omit for global) |
