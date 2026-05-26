@@ -24,12 +24,25 @@ public class OpenSkyClient {
 
     public String fetchStates() throws Exception {
         String token = getToken();
+
+        String bbox = System.getenv("OPENSKY_BBOX");
+        String url = "https://opensky-network.org/api/states/all";
+        if (bbox != null && !bbox.isBlank()) {
+            // bbox format: lamin,lomin,lamax,lomax
+            String[] parts = bbox.split(",");
+            url += "?lamin=" + parts[0] + "&lomin=" + parts[1]
+                 + "&lamax=" + parts[2] + "&lomax=" + parts[3];
+        }
+
         HttpRequest apiRequest = HttpRequest.newBuilder()
-            .uri(URI.create("https://opensky-network.org/api/states/all"))
+            .uri(URI.create(url))
             .header("Authorization", "Bearer " + token)
             .GET()
             .build();
         HttpResponse<String> response = httpClient.send(apiRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("OpenSky API returned HTTP " + response.statusCode() + ": " + response.body());
+        }
         return response.body();
     }
 
