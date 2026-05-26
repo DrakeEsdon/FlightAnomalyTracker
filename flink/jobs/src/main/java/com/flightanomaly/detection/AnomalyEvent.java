@@ -21,7 +21,7 @@ public record AnomalyEvent(
 
     public static AnomalyEvent from(String scenario, String severity, String description,
                                      List<FlightEvent> matchedEvents) {
-        FlightEvent latest = matchedEvents.getLast();
+        FlightEvent latest = matchedEvents.get(matchedEvents.size() - 1);
         return new AnomalyEvent(
                 UUID.randomUUID().toString(),
                 scenario,
