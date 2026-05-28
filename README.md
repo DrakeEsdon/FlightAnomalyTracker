@@ -4,33 +4,51 @@ Real-time anomaly detection for aircraft using Apache Flink CEP. Consumes live A
 [OpenSky Network](https://opensky-network.org), runs it through configurable detection scenarios, and publishes
 matched anomalies to Kafka for downstream consumers (dashboards, alerting, etc).
 
+## Live demo
+
+A simple live demo is running at **[https://flights.esdon.dev](https://flights.esdon.dev)** — a map and sidebar that show stateful and non-stateful detected anomalies as they arrive from live data. It is meant as a visual representation of the repo, not a production-grade deployment. The active detection rules are intentionally basic example scenarios, not a full operational rule set.
+
 ## Prerequisites
 
-- Java 17+ (tested with [Eclipse Temurin](https://adoptium.net/))
-- [Gradle 8.12](https://gradle.org/install/)
+**To run the stack:**
+
 - Docker & Docker Compose
-- Make (optional)
+- A `.env` file in the project root (copy from `.env.example` and add your OpenSky credentials)
 
-Set `JAVA_HOME` before building:
+No Java or Gradle required on the host — the Flink job JAR is built inside Docker.
 
-```bash
-# Linux/macOS
-export JAVA_HOME=/path/to/jdk-17
-
-# Windows (PowerShell)
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17"
-```
+**For local Java development only:** Java 17+ and Gradle (via `./gradlew`).
 
 ## Getting Started
 
 ```bash
-make build          # builds the fat jar
-make up             # starts Kafka + Flink cluster
-make submit         # submits the job to Flink
-make logs           # tail the task manager output
-make kafka-alerts   # consume from the anomaly-alerts topic
-make down           # tear down
+cp .env.example .env   # edit with OpenSky credentials
+docker compose -f docker/docker-compose.yml up -d --build
 ```
+
+- Flink dashboard: http://localhost:8081
+- Alerts are published to the `anomaly-alerts` Kafka topic (consume with your own tooling)
+
+```bash
+docker compose -f docker/docker-compose.yml down
+```
+
+Or with Make:
+
+```bash
+make up
+make logs          # taskmanager
+make logs-collector
+make down
+```
+
+Submit the Flink job manually (after the stack is up):
+
+```bash
+docker compose -f docker/docker-compose.yml --profile manual-submit run --rm submit-job
+```
+
+**Local Java builds** (optional): `./gradlew shadowJar` needs JDK 17+ (`JAVA_HOME` must not point at Java 8).
 
 ## Project Layout
 
@@ -39,7 +57,7 @@ flink/
   common/         shared model (FlightEvent record)
   collector/      polls OpenSky API, publishes to Kafka
   jobs/           Flink streaming job (CEP scenarios, signal loss, sinks)
-docker/           docker-compose for local Kafka + Flink
+docker/           docker-compose for local Kafka + Flink + collector
 ```
 
 ## How Scenarios Work
@@ -55,10 +73,10 @@ Environment variables (see `.env.example`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `KAFKA_BROKERS` | `kafka:9092` | Kafka bootstrap servers |
+| `KAFKA_BROKERS` | `kafka:9092` | Kafka bootstrap servers (in Docker) |
 | `KAFKA_TOPIC` | `flight-events` | Input topic |
 | `KAFKA_ALERTS_TOPIC` | `anomaly-alerts` | Output topic for detected anomalies |
 | `OPENSKY_CLIENT_ID` | - | OpenSky OAuth2 client ID |
 | `OPENSKY_CLIENT_SECRET` | - | OpenSky OAuth2 client secret |
-| `OPENSKY_POLL_INTERVAL_SECONDS` | `60` | Polling frequency |
+| `OPENSKY_POLL_INTERVAL_SECONDS` | `300` | Polling frequency |
 | `OPENSKY_BBOX` | - | Bounding box `lamin,lomin,lamax,lomax` (omit for global) |

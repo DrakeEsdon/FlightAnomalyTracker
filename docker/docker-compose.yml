@@ -1,9 +1,27 @@
+networks:
+  flighttracker-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.100.0/24
+
 services:
+  flink-jar:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flink-jobs
+    networks:
+      - flighttracker-net
+    volumes:
+      - flink-libs:/output
+    restart: "no"
+
   kafka:
     image: apache/kafka:3.9.0
-    ports:
-      - "9092:9092"
-      - "9094:9094"
+    networks:
+      flighttracker-net:
+        ipv4_address: 172.30.100.10
+    restart: unless-stopped
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -23,33 +41,111 @@ services:
 
   jobmanager:
     image: flink:latest
+    hostname: jobmanager
+    networks:
+      flighttracker-net:
+        ipv4_address: 172.30.100.20
+    extra_hosts:
+      - "jobmanager:172.30.100.20"
     ports:
       - "8081:8081"
     command: jobmanager
+    restart: unless-stopped
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.bind-host: 0.0.0.0
+        rest.address: jobmanager
+        rest.bind-address: 0.0.0.0
+        rest.port: 8081
         state.backend.type: hashmap
         state.checkpoints.dir: file:///tmp/flink-checkpoints
     volumes:
-      - ../flink/jobs/build/libs:/opt/flink/usrlib
+      - flink-libs:/opt/flink/usrlib:ro
     depends_on:
       kafka:
         condition: service_healthy
+      flink-jar:
+        condition: service_completed_successfully
 
   taskmanager:
     image: flink:latest
+    hostname: taskmanager
+    networks:
+      flighttracker-net:
+        ipv4_address: 172.30.100.21
+    extra_hosts:
+      - "jobmanager:172.30.100.20"
+      - "taskmanager:172.30.100.21"
     command: taskmanager
+    restart: unless-stopped
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.bind-host: 0.0.0.0
+        rest.address: jobmanager
+        rest.bind-address: 0.0.0.0
+        rest.port: 8081
+        taskmanager.host: taskmanager
+        taskmanager.bind-host: 0.0.0.0
         taskmanager.numberOfTaskSlots: 2
         taskmanager.memory.process.size: 4096m
         state.backend.type: hashmap
         state.checkpoints.dir: file:///tmp/flink-checkpoints
     volumes:
-      - ../flink/jobs/build/libs:/opt/flink/usrlib
+      - flink-libs:/opt/flink/usrlib:ro
     depends_on:
-      - jobmanager
+      jobmanager:
+        condition: service_started
+      flink-jar:
+        condition: service_completed_successfully
+
+  submit-job:
+    profiles: ["manual-submit"]
+    image: flink:latest
+    networks:
+      - flighttracker-net
+    extra_hosts:
+      - "jobmanager:172.30.100.20"
+    entrypoint: ["/bin/bash", "/scripts/submit-flink-job.sh"]
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+        rest.port: 8081
+    volumes:
+      - flink-libs:/opt/flink/usrlib:ro
+      - ./submit-flink-job.sh:/scripts/submit-flink-job.sh:ro
+    depends_on:
+      jobmanager:
+        condition: service_started
+      taskmanager:
+        condition: service_started
+      flink-jar:
+        condition: service_completed_successfully
+    restart: "no"
+
+  collector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.collector
+    networks:
+      - flighttracker-net
+    env_file:
+      - .env
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID}
+      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET}
+      OPENSKY_BBOX: ${OPENSKY_BBOX:-}
+      OPENSKY_POLL_INTERVAL_SECONDS: ${OPENSKY_POLL_INTERVAL_SECONDS:-300}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  flink-libs:

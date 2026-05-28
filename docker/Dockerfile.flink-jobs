@@ -1,0 +1,12 @@
+FROM eclipse-temurin:21-jdk AS build
+
+WORKDIR /app
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle/ gradle/
+COPY flink/ flink/
+
+RUN chmod +x gradlew && ./gradlew :flink:jobs:shadowJar --no-daemon
+
+FROM alpine:3.20
+COPY --from=build /app/flink/jobs/build/libs/flight-anomaly-detector-0.1.0-SNAPSHOT-all.jar /jar/
+ENTRYPOINT ["sh", "-c", "cp /jar/*.jar /output/"]

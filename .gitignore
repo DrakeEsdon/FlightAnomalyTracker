@@ -29,3 +29,6 @@ site/
 # Environment
 .env
 *.local
+
+# Local restore snapshots (pre/post public-repo trim)
+.local-restore/

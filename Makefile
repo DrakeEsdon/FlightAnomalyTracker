@@ -1,38 +1,28 @@
-.PHONY: build up down submit logs clean kafka-produce kafka-alerts
+.PHONY: build up down logs logs-collector logs-all clean
 
-# Build the fat jar locally (requires Java 21)
+COMPOSE = docker compose -f docker/docker-compose.yml
+
+# Build Flink fat jar locally (optional — `make up` builds it in Docker)
 build:
 	./gradlew shadowJar
 
-# Start Kafka + Flink cluster (run `make build` first)
+# Start full stack; Flink jar is built inside Docker (no host Java required)
 up:
-	docker compose -f docker/docker-compose.yml up -d
+	$(COMPOSE) up -d --build
 
+# Stop everything
 down:
-	docker compose -f docker/docker-compose.yml down
-
-# Submit the job to the running Flink cluster
-submit:
-	docker compose -f docker/docker-compose.yml exec jobmanager \
-		flink run -c com.flightanomaly.FlightAnomalyJob \
-		/opt/flink/usrlib/flight-anomaly-detector-0.1.0-SNAPSHOT-all.jar
+	$(COMPOSE) down
 
 logs:
-	docker compose -f docker/docker-compose.yml logs -f taskmanager
+	$(COMPOSE) logs -f taskmanager
 
-logs-jm:
-	docker compose -f docker/docker-compose.yml logs -f jobmanager
+logs-collector:
+	$(COMPOSE) logs -f collector
 
-# Send a test message to Kafka to verify the pipeline works end-to-end
-kafka-produce:
-	docker compose -f docker/docker-compose.yml exec kafka \
-		kafka-console-producer.sh --bootstrap-server localhost:9092 --topic flight-events
-
-# Consume anomaly alerts from Kafka
-kafka-alerts:
-	docker compose -f docker/docker-compose.yml exec kafka \
-		kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic anomaly-alerts --from-beginning
+logs-all:
+	$(COMPOSE) logs -f
 
 clean:
-	./gradlew clean
-	docker compose -f docker/docker-compose.yml down -v
+	$(COMPOSE) down -v
+	./gradlew clean 2>/dev/null || true
