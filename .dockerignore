@@ -1,0 +1,9 @@
+.git
+.gradle
+.env
+*.db
+*.db-shm
+*.db-wal
+site/client/node_modules
+site/server/node_modules
+site/data
