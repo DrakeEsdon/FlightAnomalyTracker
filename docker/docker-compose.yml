@@ -118,7 +118,7 @@ services:
         rest.port: 8081
     volumes:
       - flink-libs:/opt/flink/usrlib:ro
-      - ./submit-flink-job.sh:/scripts/submit-flink-job.sh:ro
+      - ./docker/submit-flink-job.sh:/scripts/submit-flink-job.sh:ro
     depends_on:
       jobmanager:
         condition: service_started
